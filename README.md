@@ -1,0 +1,2 @@
+# Otello
+Otello (reversi) game.
