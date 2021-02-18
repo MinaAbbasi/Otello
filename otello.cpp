@@ -17,6 +17,7 @@ class Board{
 public:
 	Board(): board(8, std::vector<std::string>(8, " O ")), empty_cells(64), black_cells(0), white_cells(0){};
 	std::string find_winer();
+	void place_disk(std::pair<int,int> disk_location, Player player);
 	
 private:
 	friend class Otello;
@@ -26,6 +27,15 @@ private:
 	int black_cells;
 	int white_cells;
 };
+
+void Board::place_disk(std::pair<int,int> disk_location, Player player){
+	if (player.name == "Black")
+		board[disk_location.first][disk_location.second] = " B ";
+	else if (player.name == "White")	
+		board[disk_location.first][disk_location.second] = " W ";
+	else
+		throw Exception();
+}
 
 std::string Board::find_winer(){
 	if(black_cells > white_cells)
@@ -73,7 +83,7 @@ void OutputInterface::show_board(Board& board){
 void OutputInterface::show_available_moves(std::vector<std::pair<int,int>> available_moves, std::string players_name){
 	std::cout<< "Available moves for "<< players_name << ":" << std::endl;
 	for (auto move: available_moves)
-		std::cout << "("<< move.first <<"," << move.second << " ,";
+		std::cout << "("<< move.first <<"," << move.second << ") ";
 	std::cout<<std::endl;
 }
 
@@ -98,6 +108,7 @@ void Otello::initialize_board(Board& board) {
 	board.board[4][3] = " B ";
 	board.board[4][4] = " W ";
 	number_of_disks -= 4;
+	board.empty_cells -=4;
 
 }
 
@@ -105,18 +116,21 @@ void Otello::initialize_board(Board& board) {
 void Otello::run_game(OutputInterface out, InputInterface in, Board& board, Player &black, Player &white){
 	initialize_board(board);
 	out.show_board(board);
-	std::vector<std::pair<int,int>> available_moves;
+	std::vector<std::pair<int,int>> available_moves = {std::make_pair(2,3)};
 	Player current_player = black;
 	std::cout << "set current player to black" << std::endl;
 	std::pair<int,int> current_move;
 	while (board.empty_cells){
 		//available_moves = find_available_moves(board, current_player);
-		out.show_available_moves(available_moves, current_player.name);
-		std::cout << board.empty_cells << std::endl;
-		//if (!available_moves.empty())
-			board.empty_cells --;
-		current_move = in.get_move();
+		out.show_available_moves(available_moves, current_player.name);	
+		current_move = in.get_move();	
 		std::cout << current_move.first<< "," << current_move.second << std::endl;
+		std::cout << board.empty_cells << std::endl;
+		board.place_disk(current_move, current_player);
+		out.show_board(board);
+		if (!available_moves.empty())
+			board.empty_cells --;
+
 		flip_disks(current_move, board);	
 		out.show_board(board);
 		if (current_player.name == "Black")
