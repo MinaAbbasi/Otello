@@ -4,21 +4,31 @@
 
 using namespace std;
 
+typedef  std::pair<std::pair<int,int>,std::pair<int,int>> path;
+
 class Exception{};
 
 class Player{
 public:	
-	Player(std::string name):name(name){};	
+	Player(std::string name);
 	std::string name;
+	std::string label;
 };
+
+
+Player::Player(std::string name):name(name){ 
+	label = name.at(0);
+	label.insert(0, " ");
+	label.append(" "); 
+} ;
 
 
 class Board{
 public:
 	Board(): board(8, std::vector<std::string>(8, " O ")), empty_cells(64), black_cells(0), white_cells(0){};
 	std::string find_winer();
-	void place_disk(std::pair<int,int> disk_location, Player player);
-	
+	void place_disk(std::pair<int,int> disk_location, Player player);	
+	void flip_disks(std::pair<int,int> disk_location, Player player);
 private:
 	friend class Otello;
 	friend class OutputInterface;
@@ -26,16 +36,67 @@ private:
 	int empty_cells;
 	int black_cells;
 	int white_cells;
+	std::vector<path> find_all_paths(std::pair<int,int> disk_location, std::string disk_color);	
 };
 
 void Board::place_disk(std::pair<int,int> disk_location, Player player){
+	board[disk_location.first][disk_location.second] = player.label;
 	if (player.name == "Black")
-		board[disk_location.first][disk_location.second] = " B ";
-	else if (player.name == "White")	
-		board[disk_location.first][disk_location.second] = " W ";
+		black_cells++;
 	else
-		throw Exception();
+		white_cells++;
 }
+
+std::vector<path> Board::find_all_paths(std::pair<int,int> disk_location, std::string disk_color){
+	std::vector<path> all_paths;
+	all_paths.push_back(std::make_pair(std::make_pair(2,3), std::make_pair(4,3)));
+	return all_paths;
+}
+
+void Board::flip_disks(std::pair<int,int> disk_location, Player player){
+	std::vector<path> all_paths;
+	all_paths = find_all_paths(disk_location, player.label);
+	std::string opponent_label;
+	if (player.label == " W ")
+		opponent_label = " B ";
+	else
+		opponent_label = " W ";
+	std::cout<<"player_lable:" << player.label<<",opponent_label:"<<opponent_label<<std::endl;
+
+	for (auto path_iter = all_paths.begin(); path_iter< all_paths.end(); path_iter++){
+		std::pair<int,int> start, end;
+		start = path_iter->first;
+		end = path_iter->second;
+		if (start.first == end.first)
+			std::replace(&board[start.first][start.second+1], &board[end.first][end.second], opponent_label, player.label);
+		else if (start.second == end.second)
+			for(int i= start.first+1; i<end.first; i++)
+				if(board[i][start.second] == opponent_label)
+					board[i][start.second] = player.label;
+				else
+					std::cout<<"1"<<std::endl;
+					//throw Exception();
+		else if (start.first<end.first && start.second<end.second)
+			for (int i=start.first, j=start.second; i<end.first && j<end.second; i++, j++)
+				if (board[i][j] == opponent_label)
+					board[i][j] = player.label;
+				else	
+					std::cout<<"2"<<std::endl;
+					//throw Exception();
+		else if (start.first>end.first && start.second<end.second)
+			for (int i=start.first, j=start.second; i>end.first && j<end.second; i--, j++)
+				if (board[i][j] == opponent_label)	
+					board[i][j] = player.label;
+				else	
+					std::cout<<"3"<<std::endl;
+					//throw Exception();
+		else
+			std::cout<<"4"<<std::endl;
+			//throw Exception();
+		
+	}
+}
+
 
 std::string Board::find_winer(){
 	if(black_cells > white_cells)
@@ -96,9 +157,9 @@ public:
 	void run_game(OutputInterface out,InputInterface in, Board& board, Player &black, Player &white);
 private:
 	int number_of_disks;
-	void flip_disks(std::pair<int,int> move, Board& board){};
 	void is_valid_move();
-	std::vector<std::pair<int,int>> find_available_moves(Board &board, Player& current_player){};
+	//std::vector<std::pair<int,int>> find_available_moves(Board &board, Player& current_player){};
+	void find_available_moves(Board &board, Player& current_player){};
 
 };
 
@@ -109,6 +170,9 @@ void Otello::initialize_board(Board& board) {
 	board.board[4][4] = " W ";
 	number_of_disks -= 4;
 	board.empty_cells -=4;
+	board.black_cells = 2;
+	board.white_cells = 2;
+
 
 }
 
@@ -121,8 +185,9 @@ void Otello::run_game(OutputInterface out, InputInterface in, Board& board, Play
 	std::cout << "set current player to black" << std::endl;
 	std::pair<int,int> current_move;
 	while (board.empty_cells){
+		std::cout << "-----------------------------" << std::endl;
 		//available_moves = find_available_moves(board, current_player);
-		out.show_available_moves(available_moves, current_player.name);	
+		//out.show_available_moves(available_moves, current_player.name);	
 		current_move = in.get_move();	
 		std::cout << current_move.first<< "," << current_move.second << std::endl;
 		std::cout << board.empty_cells << std::endl;
@@ -131,7 +196,7 @@ void Otello::run_game(OutputInterface out, InputInterface in, Board& board, Play
 		if (!available_moves.empty())
 			board.empty_cells --;
 
-		flip_disks(current_move, board);	
+		board.flip_disks(current_move, current_player);	
 		out.show_board(board);
 		if (current_player.name == "Black")
 			current_player = white;
